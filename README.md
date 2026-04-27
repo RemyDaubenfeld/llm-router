@@ -1,3 +1,5 @@
+> **[🇬🇧 English](README.md) | [🇫🇷 Français](README.fr.md)**
+
 # LLM Router V4.1
 
 ![Docker](https://img.shields.io/badge/docker-compose-2496ED)
@@ -6,104 +8,104 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 
-## Routeur intelligent pour modèles LLM locaux
+## Intelligent router for local LLMs
 
-Sélection automatique du meilleur modèle selon le prompt (code, raisonnement, chat, vision).  
-Optimisé pour **16 Go RAM + RTX 3050 Ti Mobile (4 Go VRAM)**.
+Automatically selects the best model based on your prompt (code, reasoning, chat, vision).  
+Optimized for **16 GB RAM + RTX 3050 Ti Mobile (4 GB VRAM)**.
 
 ```
-Utilisateur → OpenWebUI (:3000) → LLM Router (:5000) → Ollama (:11434) → Modèles
-                                                │
-                  OpenCode (terminal) ↗     config / models / cache / memory / logs               
+User → OpenWebUI (:3000) → LLM Router (:5000) → Ollama (:11434) → Models
+                                        |
+            OpenCode (terminal) ↗      config / models / cache / memory / logs
 ```
 
 ---
 
-## Prérequis
+## Prerequisites
 
 - [Docker](https://docs.docker.com/engine/install/) + Docker Compose
-- GPU Nvidia : installer [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+- NVIDIA GPU: install [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-# Vérifier que le GPU est accessible par Docker
+# Verify that Docker can access the GPU
 ```bash
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-Sans GPU Nvidia, supprimer le bloc `deploy` dans le `docker-compose.yml` — le projet fonctionnera en CPU.
+If you don't have an NVIDIA GPU, remove the deploy block from **docker-compose.yml** — the project will run on CPU.
 
 ---
 
-## Fonctionnalités
+## Features
 
-✅ Routing sémantique (cosine similarity) + boost par mots‑clés + bonus vitesse
+✅ Semantic routing (cosine similarity) + keyword boost + speed bonus
 
-✅ Cache intelligent en mémoire (prêt pour Redis)
+✅ In-memory intelligent cache (Redis ready)
 
-✅ Mémoire de session pour suivre les conversations
+✅ Session memory to track conversations
 
-✅ Logging structuré de chaque requête et routage
+✅ Structured logging of every request and routing
 
-✅ Compatible OpenAI API → OpenWebUI, Continue, etc.
+✅ OpenAI API compatible → OpenWebUI, Continue, etc.
 
-✅ Support GPU via NVIDIA container toolkit
+✅ GPU support via NVIDIA container toolkit
 
-✅ Docker Compose “prêt à l’emploi”
+✅ Docker Compose “just run”
 
 ---
 
-## Modèles intégrés (configurés dans config.py)
+## Built-in models (configured in config.py)
 
 |                Modèle               |  VRAM  |   Type    |           Cas d'usage              |
 |-------------------------------------|--------|-----------|----------------------------------- |
 | `deepseek-coder:6.7b-instruct-q8_0` | ~4GB   | code      | Bug, SQL, API, scripts             |
-| `llama3.1:8b-instruct-q4_K_M`       | ~4GB   | reasoning | Analyse, explication, comparaison  |
-| `mistral:latest`                    | ~4GB   | chat      | Questions courtes, conversation    |
-| `gemma3:4b`                         | ~3GB   | general   | Fallback général                   |
-| `minicpm-v:8b-2.6-q2_K`             | ~4GB   | vision    | Image, photo, description visuelle |
-| `nomic-embed-text`                  | ~270MB | embedding | Routing sémantique interne         |
+| `llama3.1:8b-instruct-q4_K_M`       | ~4GB   | reasoning | Analysis, explanation, comparison  |
+| `mistral:latest`                    | ~4GB   | chat      | Short questions, conversation      |
+| `gemma3:4b`                         | ~3GB   | general   | General fallback                   |
+| `minicpm-v:8b-2.6-q2_K`             | ~4GB   | vision    | Image, photo, visual description   |
+| `nomic-embed-text`                  | ~270MB | embedding | nternal semantic routing           |
  
  ---
 
-## Architecture des services
+ ## Service architecture
 
-|    Service	|  Port	 |                Rôle                 |          URL            |
-|---------------|--------|-------------------------------------|------------------------ |
-| llm-router	| 5000	 | API de routage intelligent (FastAPI)| http://localhost:5000   |
-| ollama	| 11434	 | Serveur de modèles (GPU activé)     | http://localhost:11434  |
-| open-webui	| 3000	 | Interface Web + RAG                 | http://localhost:3000   |
-
----
-
-## Architecture des fichiers
-
-| Fichier     |                      Rôle                                |
-|-------------|----------------------------------------------------------|
-| `config.py` | **Source de vérité unique** : modèles, URL, mots-clés    |
-| `models.py` | Embeddings via `nomic-embed-text` + vecteurs précalculés |
-| `router.py` | Logique principale : routing, stream, endpoints          |
-| `main.py`   | Point d'entrée unique (`from router import app`)         |
-| `cache.py`  | Cache in-memory (→ Redis sur NAS)                        |
-| `memory.py` | Historique de sessions (→ Redis sur NAS)                 |
-| `logs.py`   | Logging structuré de chaque requête/routing              |
+|    Service	|  Port	 |                Rôle                |          URL            |
+|---------------|--------|------------------------------------|------------------------ |
+| llm-router	| 5000	 | Intelligent routing API (FastAPI)  | http://localhost:5000   |
+| ollama	    | 11434	 | Model server (GPU enabled)         | http://localhost:11434  |
+| open-webui	| 3000	 | Web UI + RAG                       | http://localhost:3000   |
 
 ---
 
-## Installation rapide
+## File architecture
+
+| Fichier     |                      Rôle                             |
+|-------------|-------------------------------------------------------|
+| `config.py` | **Single source of truth**: models, URL, keywords     |
+| `models.py` | Embeddings via nomic-embed-text + precomputed vectors |
+| `router.py` | Main logic: routing, streaming, endpoints             |
+| `main.py`   | Entry point (from router import app)                  |
+| `cache.py`  | In-memory cache (→ Redis on NAS)                      |
+| `memory.py` | Session history (→ Redis on NAS)                      |
+| `logs.py`   | Structured logging of every request/routing           |
+
+---
+
+## Quick installation
 
 ```bash
-# 1. Cloner le dépôt
+# 1. Clone the repository
 git clone https://github.com/RemyDaubenfeld/llm-router.git
 cd llm-router
 
-# 2. Si un Ollama système tourne, l'arrêter
+# 2. If a system Ollama is running, stop it
 sudo systemctl stop ollama
 sudo systemctl disable ollama
 
-# 3. Lancer tous les services
+# 3. Start all services
 docker compose up -d --build
 
-# 4. Pull des modèles recommandés  (À faire une seule fois après le premier lancement)
+# 4. Pull recommended models (do this once after first start)
 docker compose exec ollama ollama pull deepseek-coder:6.7b-instruct-q8_0
 docker compose exec ollama ollama pull llama3.1:8b-instruct-q4_K_M
 docker compose exec ollama ollama pull mistral:latest
@@ -111,63 +113,61 @@ docker compose exec ollama ollama pull gemma3:4b
 docker compose exec ollama ollama pull minicpm-v:8b-2.6-q2_K
 docker compose exec ollama ollama pull nomic-embed-text
 
-# Autres commandes utiles :
-docker compose exec ollama ollama list        # lister les modèles
-docker compose exec ollama ollama ps          # modèles en cours d'exécution
-docker compose exec ollama ollama rm <modèle> # supprimer un modèle
+# Other useful commands:
+docker compose exec ollama ollama list        # list models
+docker compose exec ollama ollama ps          # running models
+docker compose exec ollama ollama rm <model>  # delete a model
 ```
 
 ---
 
-## Utilisation
+## Usage
 
-# 1.OpenWebUI (interface graphique)
+# 1. OpenWebUI (graphical interface)
+**Connections → OpenAI compatible API**
+-> Admin settings → Connections → OpenAI compatible API :
+URL → http://llm-router:5000/v1
+API Key → ia-local
 
-**Connexions → API compatibles OpenAI**
--> Paramètres admin → Connexions → API compatibles OpenAI :
-- URL → `http://llm-router:5000/v1`
-- Clé API → `ia-local`
+**Connections → Ollama API** (for RAG embeddings)
+-> Admin settings → Connections → Ollama API :
+URL → http://ollama:11434
 
-**Connexions → API Ollama** (pour les embeddings RAG)
--> Paramètres admin → Connexions → API Ollama :
-- URL → `http://ollama:11434`
+>These URLs use Docker service names — do not use localhost as it would not work from inside containers.
 
-> Ces URLs utilisent les noms des services Docker — ne pas mettre `localhost` qui ne fonctionnerait pas depuis l'intérieur des containers.
+**Selecting a model in OpenWebUI**
+The model selected in OpenWebUI is a **pass-through** — no matter which you choose, the router decides the actual model based on the prompt content.
 
-**Sélection du modèle dans OpenWebUI**
-Le modèle sélectionné dans OpenWebUI est un **pass-through** — peu importe lequel tu choisis, c'est le router qui décide du vrai modèle utilisé selon le contenu du prompt.
+# 2. OpenCode (terminal AI agent)
+See the **OpenCode-guide-en.md** file included in the project.
 
-# 2.OpenCode (agent IA en terminal)
-
-Voir le fichier **OpenCode-guide.md** intégré au projet.
-
-# 3.Appel direct à l’API
+# 3. Direct API call
 
 ```bash
 curl -X POST http://localhost:5000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"Écris une fonction fibonacci en Python"}],"stream":false}'
+  -d '{"messages":[{"role":"user","content":"Write a fibonacci function in Python"}],"stream":false}'
 ```
 
 ---
 
-## Personnalisation du routage
+## Routing customization
 
-Éditez **config.py** pour :
-- Modifier les boost de mots‑clés (keywords)
-- Ajuster les poids (weight)
-- Ajouter / supprimer des modèles
+Edit **config.py** to:
+- Modify keyword boosts (keywords)
+- Adjust weights (weight)
+- Add / remove models
 
 ---
 
-## Routing
+## Routing logic
 
-Pour chaque prompt :
-1. **Embedding sémantique** (cosine similarity) via `nomic-embed-text` dans Ollama
-2. **Boost mots-clés** (+0.3) définis par modèle dans `config.py`
-3. **Bonus vitesse** (+0.05) pour les prompts courts sur les modèles rapides
+For each prompt:
+1. **Semantic embedding** (cosine similarity) via nomic-embed-text in Ollama
+2. **Keyword boost** (+0.3) defined per model in config.py
+3. **Speed bonus** (+0.05) for short prompts on fast models
 
-Pour voir quel modèle est choisi en temps réel :
+To see which model is chosen in real time:
 
 ```bash
 docker compose logs -f llm-router
@@ -175,68 +175,67 @@ docker compose logs -f llm-router
 
 ---
 
-## Endpoints du router
+## Router endpoints
 
-- `GET  /health` — état du serveur + taille du cache
-- `GET  /v1/models` — liste des modèles (compatibilité OpenAI)
-- `POST /v1/chat/completions` — endpoint principal (stream ou sync)
+- `GET /health` — server status + cache size
+- `GET /v1/models` — list of models (OpenAI compatibility)
+- `POST /v1/chat/completions` — main endpoint (stream or sync)
 
 ---
 
-## Base de connaissances (RAG)
+## Knowledge base (RAG)
 
-OpenWebUI intègre un système RAG natif qui fonctionne directement avec `nomic-embed-text`.
-Les fichiers sont découpés en chunks, transformés en embeddings et récupérés automatiquement selon le prompt.
+OpenWebUI includes a native RAG system that works directly with `nomic-embed-text`.
+Files are split into chunks, transformed into embeddings, and retrieved automatically based on the prompt.
 
-**Configuration embeddings** (une seule fois)
--> Paramètres admin → Documents :
-- Modèle d'embedding → `nomic-embed-text`
+**Embeddings configuration** (one time only)
+-> Admin settings → Documents :
+- Embedding model → `nomic-embed-text`
 - URL → `http://ollama:11434`
 
-**Créer une base de connaissances**
-->Espace de travail → Connaissances → + Nouvelle base de connaissances
+**Create a knowledge base**
+-> Workspace → Knowledge → + New knowledge base
 
-Uploade tes fichiers ou synchronise un dossier — OpenWebUI génère les embeddings automatiquement. Pour un projet qui évolue, utilise **Téléverser un dossier** pour que les modifications soient prises en compte.
+Upload your files or sync a folder — OpenWebUI generates embeddings automatically. For an evolving project, use **Upload a folder** so changes are taken into account.
 
-**Utiliser la base dans une conversation**
-Dans le chat, tape `#` puis le nom de ta base. OpenWebUI récupère les passages pertinents et les injecte dans le contexte avant d'envoyer au router.
+**Use the knowledge base in a conversation**
+In the chat, type `#` followed by the name of your knowledge base. OpenWebUI retrieves relevant passages and injects them into the context before sending to the router.
 
-**Flux complet**
-```
-Question sur ton projet
-        ↓
-OpenWebUI cherche les passages pertinents (nomic-embed-text)
-        ↓
-Injecte ces passages dans le prompt
-        ↓
-Router → choisit le bon modèle (deepseek, llama, mistral...)
-        ↓
-Réponse contextualisée
-```
+**Full flow**
 
-> Tout reste 100% local. Le router n'a pas besoin de modification.
+Question about your project
+        ↓
+OpenWebUI searches for relevant passages (nomic-embed-text)
+        ↓
+Injects those passages into the prompt
+        ↓
+Router → chooses the right model (deepseek, llama, mistral...)
+        ↓
+Contextualized answer
+
+>Everything remains 100% local. The router does not need any modification.
 
 ---
 
-## Bonnes pratiques
+## Best practices
 
-- Utiliser un modèle dédié par tâche — le router s'en charge automatiquement
-- Ne pas donner trop de contexte d'un coup — travailler par petites tâches
-- Pour du code → laisser le router choisir (deepseek sera sélectionné)
-- Pour de l'analyse → laisser le router choisir (llama sera sélectionné)
-- Sauvegarder régulièrement le volume Docker `open-webui` (historique, comptes)
+- Use a dedicated model per task — the router handles it automatically
+- Don’t give too much context at once — work in small steps
+- For code → let the router choose (deepseek will be selected)
+- For analysis → let the router choose (llama will be selected)
+- Regularly back up the Docker volume `open-webui` (history, accounts)
 
 ---
 
-## Volumes Docker
+## Docker volumes
 
 ```bash
-docker volume ls                           # lister les volumes
-docker volume rm llm_router_open-webui     # supprimer (efface historique et comptes)
+docker volume ls                           # list volumes
+docker volume rm llm_router_open-webui     # delete (erases history and accounts)
 ```
-> Supprimer un container ne supprime pas ses données — les volumes sont indépendants.
- 
-**Sauvegarder le volume OpenWebUI**
+>Deleting a container does not delete its data — volumes are independent.
+
+**Backup the OpenWebUI volume**
 ```bash
 docker run --rm -v llm_router_open-webui:/data -v $(pwd):/backup alpine \
   tar czf /backup/open-webui-backup.tar.gz /data
@@ -244,28 +243,27 @@ docker run --rm -v llm_router_open-webui:/data -v $(pwd):/backup alpine \
 
 ---
 
-## Démarrage automatique
+## Automatic startup
 
-Tous les services redémarrent automatiquement grâce à `restart: unless-stopped`.
+All services restart automatically thanks to `restart: unless-stopped`.
 
-Pour que Docker démarre au boot :
+To ensure Docker starts at boot:
 ```bash
 sudo systemctl enable docker
 ```
+--- 
+
+## Environment variables
+
+|   Variable   |                Default             |            Description            |
+|--------------|------------------------------------|-----------------------------------|
+| `OLLAMA_URL` | `http://ollama:11434/api/generate` | Ollama URL (automatic via Docker) |
 
 ---
 
-## Variables d'environnement
+## GPU optimizations (for this setup)
 
-|   Variable   |                Défaut              |          Description           |
-|--------------|------------------------------------|--------------------------------|
-| `OLLAMA_URL` | `http://ollama:11434/api/generate` | URL d'Ollama (auto via Docker) |
-
----
-
-## Optimisations GPU (pour cette configuration)
-
-Dans docker-compose.yml, le service ollama inclut déjà :
+In **docker-compose.yml**, the `ollama` service already includes:
 
 ```yaml
 environment:
@@ -282,13 +280,12 @@ deploy:
           capabilities: [gpu]
 ```
 
-Ces variables assurent un offloading partiel sur GPU et une meilleure gestion de la mémoire.
+These settings enable partial GPU offloading and better memory management.
 
 ---
 
-## Migration Redis (NAS)
-
-Les commentaires dans `cache.py` et `memory.py` indiquent exactement les lignes à remplacer :
+## Redis migration (NAS)
+The comments in **cache.py** and **memory.py** indicate exactly which lines to replace:
 
 ```bash
 pip install redis
@@ -296,15 +293,14 @@ pip install redis
 
 ---
 
-## Licence
+## License
 
-MIT - libre d'utiliser, modifier et distribuer.
+MIT — free to use, modify, and distribute.
 
 ---
 
-## Remerciements
-
-- **Ollama** pour l’exécution locale des modèles
-- **OpenWebUI** pour l’interface et le RAG
-- **OpenCode** pour l’agent terminal
-- **FastAPI** pour la performance et la simplicité
+## Acknowledgements
+- **Ollama** for local model execution
+- **OpenWebUI** for the interface and RAG
+- **OpenCode** for the terminal agent
+- **FastAPI** for performance and simplicity
