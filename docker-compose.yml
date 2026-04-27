@@ -1,0 +1,53 @@
+services:
+  llm-router:
+    build: .
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    environment:
+      - OLLAMA_URL=http://ollama:11434/api/generate
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama
+    ports: 
+      - "11434:11434"
+    restart: unless-stopped
+    volumes:
+      - ~/.ollama:/root/.ollama
+    environment:
+      - OLLAMA_GPU_OVERHEAD=2147483648
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q4_0
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    restart: unless-stopped
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - llm-router
+    environment:
+      - OPENAI_API_BASE_URL=http://llm-router:5000/v1
+      - OPENAI_API_KEY=ia-local #(clé factice pour en local)
+
+volumes:
+  open-webui:
