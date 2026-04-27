@@ -1,6 +1,6 @@
 # OpenCode — Guide d'utilisation
 
-Agent de coding IA dans le terminal, connecté à ton Ollama local.
+Agent de coding IA dans le terminal, connecté à Ollama local.
 
 ---
 
@@ -42,12 +42,12 @@ Il sera plus pertinent dans ses suggestions ensuite.
 
 ## Les deux modes (Tab pour switcher)
 
-### Plan (lecture seule)
+**Plan (lecture seule)**
 - Analyse le code, pose des questions, réfléchit
 - Ne modifie aucun fichier
 - Idéal pour : comprendre une base de code, planifier une feature, débugger
 
-### Build (modifications actives)
+**Build (modifications actives)**
 - Lit et modifie les fichiers directement
 - Propose chaque changement sous forme de diff à valider
 - Idéal pour : implémenter, refactoriser, corriger des bugs

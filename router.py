@@ -13,7 +13,6 @@ from logs import log_routing, log_cache_hit, log_request, log_response, logger
 
 app = FastAPI(title="LLM Router", version="4.1")
 
-# Vecteurs précalculés une seule fois au démarrage
 MODEL_VECTORS = build_model_vectors()
 
 
