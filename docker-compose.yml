@@ -1,6 +1,8 @@
 services:
+
   llm-router:
     build: .
+    container_name: llmrouter
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -8,20 +10,27 @@ services:
       - OLLAMA_URL=http://ollama:11434/api/generate
     depends_on:
       - ollama
+    networks:
+      - ai-net 
 
   ollama:
     image: ollama/ollama
+    container_name: ollama
     ports: 
       - "11434:11434"
     restart: unless-stopped
     volumes:
       - ~/.ollama:/root/.ollama
     environment:
-      - OLLAMA_GPU_OVERHEAD=2147483648
+      - OLLAMA_GPU_OVERHEAD=536870912
       - OLLAMA_FLASH_ATTENTION=1
       - OLLAMA_KV_CACHE_TYPE=q4_0
-      - OLLAMA_NUM_PARALLEL=4
       - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_GPU=1
+      - OLLAMA_NUM_CTX=8192
+      - OLLAMA_LOAD_TIMEOUT=300
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 5s
@@ -35,9 +44,12 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    networks:
+      - ai-net
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui
     ports:
       - "3000:8080"
     restart: unless-stopped
@@ -47,7 +59,14 @@ services:
       - llm-router
     environment:
       - OPENAI_API_BASE_URL=http://llm-router:5000/v1
-      - OPENAI_API_KEY=ia-local #(clé factice pour en local)
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OPENAI_API_KEY=ia-local
+    networks:
+      - ai-net 
 
 volumes:
   open-webui:
+
+networks:
+  ai-net:
+    driver: bridge

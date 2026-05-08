@@ -8,11 +8,11 @@ EMBED_URL = OLLAMA_URL.replace("/api/generate", "/api/embeddings")
 
 
 def embed(text: str) -> np.ndarray:
-    """Génère un vecteur d'embedding via nomic-embed-text dans Ollama."""
+    """Generate an embedding vector via nomic-embed-text in Ollama."""
     r = requests.post(
         EMBED_URL,
         json={"model": EMBED_MODEL, "prompt": text},
-        timeout=30,
+        timeout=300,
     )
     r.raise_for_status()
     return np.array(r.json()["embedding"], dtype=np.float32)
@@ -20,8 +20,8 @@ def embed(text: str) -> np.ndarray:
 
 def build_model_vectors(retries: int = 10, delay: int = 3) -> dict:
     """
-    Précalcule les vecteurs d'embedding pour chaque type de modèle.
-    Attend qu'Ollama soit prêt avant de démarrer (utile au boot Docker).
+    Precomputes embedding vectors for each model type.
+    Wait for Ollama to be ready before starting (useful at Docker boot).
     """
     for attempt in range(retries):
         try:
@@ -31,7 +31,7 @@ def build_model_vectors(retries: int = 10, delay: int = 3) -> dict:
             }
         except Exception as e:
             if attempt < retries - 1:
-                print(f"[models] Ollama pas encore prêt, retry {attempt + 1}/{retries} dans {delay}s... ({e})")
+                print(f"[models] Ollama not ready, retry {attempt + 1}/{retries} in {delay}s... ({e})")
                 time.sleep(delay)
             else:
-                raise RuntimeError(f"Impossible de joindre Ollama après {retries} tentatives : {e}")
+                raise RuntimeError(f"Cannot reach Ollama after {retries} attempts: {e}")

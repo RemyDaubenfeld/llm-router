@@ -11,72 +11,93 @@ from memory import get_session, add_message
 from cache import get_cache, set_cache, cache_size
 from logs import log_routing, log_cache_hit, log_request, log_response, logger
 
-app = FastAPI(title="LLM Router", version="4.1")
+app = FastAPI(title="LLM Router", version="4.2")
 
 MODEL_VECTORS = build_model_vectors()
 
+# URL for chat API (different from api/generate)
+OLLAMA_CHAT_URL = OLLAMA_URL.replace("/api/generate", "/api/chat")
+
 
 # =========================
-# 🧠 ROUTING INTELLIGENT
+# 🧠 SMART ROUTING
 # =========================
-def select_model(prompt: str) -> tuple[str, dict]:
+def select_model(prompt: str) -> tuple[str, dict]:          
     """
-    Sélectionne le meilleur modèle via :
-    1. Similarité cosinus (embedding sémantique)
-    2. Boost par mots-clés spécifiques à chaque modèle
-    3. Bonus vitesse pour les prompts courts
-    Retourne (model_name, scores_dict) pour le logging.
+    Selects the best model via:
+    1. Cosine similarity (semantic embedding)
+    2. Keyword boost specific to each model
+    3. Speed bonus for short prompts
+    Fallback to keywords only if Ollama is busy (avoids model swap).
+    Returns (model_name, scores_dict) for logging.
     """
-    vec = embed(prompt.lower())
     p = prompt.lower()
     scores: dict[str, float] = {}
 
-    for model, cfg in MODELS.items():
-        mv = MODEL_VECTORS[model]
-        sim = np.dot(vec, mv) / (np.linalg.norm(vec) * np.linalg.norm(mv) + 1e-9)
-        score = float(sim) * cfg["weight"]
+    # Attempt semantic embedding
+    try:
+        vec = embed(p)
+        for model, cfg in MODELS.items():
+            mv = MODEL_VECTORS[model]
+            sim = np.dot(vec, mv) / (np.linalg.norm(vec) * np.linalg.norm(mv) + 1e-9)
+            score = float(sim) * cfg["weight"]
 
-        # Boost mots-clés — définis dans config.py par modèle
-        if any(kw in p for kw in cfg.get("keywords", [])):
-            score += 0.3
+            if any(kw in p for kw in cfg.get("keywords", [])):
+                score += 0.3
 
-        # Bonus vitesse pour prompts courts
-        if len(p) < 30 and cfg["speed"] == "fast":
-            score += 0.05
+            if len(p) < 30 and cfg["speed"] == "fast":
+                score += 0.05
 
-        scores[model] = score
+            scores[model] = score
+
+    except Exception as e:
+        # Fallback: keyword-only routing (no model swap)
+        logger.warning(f"Embedding unavailable, fallback to keywords: {e}")
+        for model, cfg in MODELS.items():
+            score = cfg["weight"]
+            if any(kw in p for kw in cfg.get("keywords", [])):
+                score += 0.3
+            if len(p) < 30 and cfg["speed"] == "fast":
+                score += 0.05
+            scores[model] = score
 
     best = max(scores, key=scores.get)
     return best, scores
 
 
 # =========================
-# 🚀 STREAM OLLAMA
+# 🚀 STREAM OLLAMA (api/chat)
 # =========================
-def stream_ollama(model: str, prompt: str):
-    """Générateur de chunks streamés depuis Ollama."""
+def stream_ollama(model: str, messages: list[dict]):
+    """
+    Generator of streamed chunks from Ollama via api/chat.
+    Receives the complete message history (OpenAI format).
+    """
     try:
         r = requests.post(
-            OLLAMA_URL,
-            json={"model": model, "prompt": prompt, "stream": True},
+            OLLAMA_CHAT_URL,
+            json={"model": model, "messages": messages, "stream": True},
             stream=True,
             timeout=120,
         )
         r.raise_for_status()
     except requests.exceptions.Timeout:
-        logger.error(f"Timeout Ollama pour le modèle {model}")
-        yield "[ERREUR : timeout Ollama]"
+        logger.error(f"Timeout Ollama for model {model}")
+        yield "[ERROR: Ollama timeout]"
         return
     except requests.exceptions.ConnectionError:
-        logger.error("Ollama inaccessible")
-        yield "[ERREUR : Ollama inaccessible]"
+        logger.error("Ollama unreachable")
+        yield "[ERROR: Ollama unreachable]"
         return
 
     for line in r.iter_lines():
         if line:
             data = json.loads(line.decode("utf-8"))
-            if "response" in data:
-                yield data["response"]
+            # api/chat returns data["message"]["content"] (not data["response"])
+            if "message" in data and "content" in data["message"]:
+                chunk = data["message"]["content"]
+                if chunk:
+                    yield chunk
 
 
 # =========================
@@ -93,7 +114,7 @@ def health():
 
 @app.get("/v1/models")
 def list_models():
-    """Endpoint de compatibilité OpenAI pour OpenWebUI."""
+    """OpenAI compatibility endpoint for OpenWebUI."""
     return {
         "object": "list",
         "data": [
@@ -109,8 +130,9 @@ async def chat(request: Request):
 
     messages = body.get("messages")
     if not messages:
-        raise HTTPException(status_code=400, detail="'messages' manquant dans le body")
+        raise HTTPException(status_code=400, detail="'messages' missing in body")
 
+    # Prompt = last user message (for routing and cache)
     prompt = messages[-1]["content"]
     stream = body.get("stream", True)
 
@@ -118,11 +140,11 @@ async def chat(request: Request):
     session_id, _ = get_session(body.get("session_id"))
     add_message(session_id, "user", prompt)
 
-    # Routing
+    # Routing (based on the last message only)
     model, scores = select_model(prompt)
     log_routing(prompt, model, scores)
 
-    # Cache
+    # Cache (key = prompt + model)
     cached = get_cache(prompt, model)
     if cached:
         log_cache_hit(prompt, model)
@@ -133,12 +155,13 @@ async def chat(request: Request):
     t0 = time.time()
 
     # =========================
-    # MODE STREAM
+    # STREAM MODE
     # =========================
     if stream:
         def event_stream():
             full = ""
-            for chunk in stream_ollama(model, prompt):
+            # Pass full message history to Ollama
+            for chunk in stream_ollama(model, messages):
                 full += chunk
                 yield f"data: {json.dumps({'choices': [{'delta': {'content': chunk}}], 'model': model})}\n\n"
 
@@ -150,9 +173,9 @@ async def chat(request: Request):
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     # =========================
-    # MODE SYNCHRONE
+    # SYNCHRONOUS MODE
     # =========================
-    full = "".join(stream_ollama(model, prompt))
+    full = "".join(stream_ollama(model, messages))
     set_cache(prompt, model, full)
     add_message(session_id, "assistant", full)
     log_response(session_id, model, time.time() - t0, len(full.split()))

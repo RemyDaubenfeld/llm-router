@@ -1,6 +1,6 @@
 import uuid
 
-# Sessions en mémoire — à migrer vers Redis pour la persistance :
+# In-memory sessions — migrate to Redis for persistence:
 #
 #   import redis, json
 #   r = redis.Redis(host="localhost", port=6379, db=1)

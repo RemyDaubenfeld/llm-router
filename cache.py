@@ -1,4 +1,4 @@
-# Cache en mémoire — remplacer par Redis lors du passage sur NAS :
+# In-memory cache — replace with Redis when migrating to NAS or another server:
 #
 #   import redis
 #   r = redis.Redis(host="localhost", port=6379, db=0)

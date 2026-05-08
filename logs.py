@@ -33,11 +33,11 @@ def log_response(session_id: str, model: str, duration: float, tokens_approx: in
 
 
 def timed(fn):
-    """Décorateur utilitaire pour mesurer le temps d'exécution."""
+    """Utility decorator to measure execution time."""
     @wraps(fn)
     def wrapper(*args, **kwargs):
         t0 = time.time()
         result = fn(*args, **kwargs)
-        logger.debug(f"{fn.__name__} exécuté en {time.time() - t0:.3f}s")
+        logger.debug(f"{fn.__name__} executed in {time.time() - t0:.3f}s")
         return result
     return wrapper
